@@ -6,17 +6,18 @@ const MN = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', '�
 const mlab = k => k ? MN[+k.slice(5, 7) - 1] + ' ' + String(+k.slice(0, 4) + 543).slice(2) : 'ไม่ทราบวันที่';
 const S = { clean: [], raw: [], log: [], page: 0, charts: {} }, PAGE = 50, BLUES = ['#0b2a5b', '#1d5fd1', '#5b9bff', '#8fb8ff', '#3a4f7a', '#b9d3ff'];
 const sum = (a, f) => a.reduce((s, r) => s + (f(r) || 0), 0);
-const status = (m, err) => { const s = $('status'); s.hidden = !m; s.textContent = m || ''; s.className = 'status' + (err ? ' err' : ''); };
+const setStatus = (m, err) => { const s = $('status'); s.hidden = !m; s.textContent = m || ''; s.className = 'status' + (err ? ' err' : ''); };
 
 async function load() {
-  $('app').hidden = true; status('กำลังดึงข้อมูลจาก Supabase …');
-  if (!Cloud.ok()) return status('ยังไม่ได้ตั้งค่า Supabase: ใส่ SUPABASE_URL และ SUPABASE_ANON_KEY ในไฟล์ js/config.js', true);
+  $('app').hidden = true; setStatus('กำลังดึงข้อมูลจาก Supabase …');
   try {
-    Object.assign(S, await Cloud.loadAll());
-    if (!S.clean.length) return status('ยังไม่มีข้อมูลใน Supabase กรุณารัน supabase/seed.sql', true);
+    if (typeof supabase === 'undefined') throw new Error('โหลดไลบรารี Supabase จาก CDN ไม่สำเร็จ (ตรวจอินเทอร์เน็ต)');
+    if (!Cloud.ok()) return setStatus('ยังไม่ได้ตั้งค่า Supabase: ใส่ SUPABASE_URL และ SUPABASE_ANON_KEY ในไฟล์ js/config.js', true);
+    Object.assign(S, await Promise.race([Cloud.loadAll(), new Promise((_, rj) => setTimeout(() => rj(new Error('หมดเวลารอการตอบกลับ (20 วินาที)')), 20000))]));
+    if (!S.clean.length) return setStatus('ยังไม่มีข้อมูลใน Supabase กรุณารัน supabase/seed.sql', true);
     S.clean.forEach(r => r.month = r.sale_date ? r.sale_date.slice(0, 7) : null);
-    initFilters(); status(''); $('app').hidden = false; renderAll();
-  } catch (e) { status('ดึงข้อมูลไม่สำเร็จ: ' + e.message + ' — ตรวจ URL/anon key และว่ารัน schema.sql + seed.sql แล้ว ก่อนกดรีเฟรช', true); }
+    initFilters(); setStatus(''); $('app').hidden = false; renderAll();
+  } catch (e) { setStatus('ดึงข้อมูลไม่สำเร็จ: ' + e.message + ' — ตรวจ URL/anon key และว่ารัน schema.sql + seed.sql แล้ว ก่อนกดรีเฟรช', true); }
 }
 const FIL = { fMonth: ['เดือน', r => r.month], fBranch: ['สาขา', r => r.branch], fCat: ['หมวดหมู่', r => r.category], fChan: ['ช่องทางขาย', r => r.channel], fPay: ['วิธีชำระเงิน', r => r.payment_method] };
 function initFilters() {
@@ -28,21 +29,21 @@ function initFilters() {
 }
 const view = (all) => S.clean.filter(r => (all || r.in_analysis) && Object.entries(FIL).every(([id, [, f]]) => !$(id).value || f(r) === $(id).value));
 function agg(rows, key) { const m = new Map(); rows.forEach(r => { const k = key(r) ?? 'ไม่ทราบ'; const o = m.get(k) || { net: 0, qty: 0, n: 0 }; o.net += +r.net_sales || 0; o.qty += r.quantity || 0; o.n++; m.set(k, o); }); return m; }
-const top = m => [...m].sort((a, b) => b[1].net - a[1].net);
+const rank = m => [...m].sort((a, b) => b[1].net - a[1].net);
 function chart(id, cfg) { S.charts[id]?.destroy(); cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: cfg.type === 'doughnut', position: 'right' } } }, cfg.options); S.charts[id] = new Chart($(id), cfg); }
 
 function renderAll() { const v = view(); renderOverview(v); renderQuality(); renderExplore(v); S.page = 0; renderTable(); }
 function renderOverview(v) {
   const net = sum(v, r => +r.net_sales), gross = sum(v, r => +r.gross_sales), qty = sum(v, r => r.quantity);
   $('kpis').innerHTML = [[nf(net), 'ยอดขายสุทธิ (บาท)'], [nf(qty), 'จำนวนชิ้นที่ขาย'], [nf(v.length), 'จำนวนรายการขาย'], [nf(v.length ? net / v.length : 0, 2), 'ยอดเฉลี่ยต่อรายการ (บาท)'], [nf(gross - net), 'ส่วนลดรวม (บาท)']].map(k => `<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('');
-  if (!v.length) { status('ไม่พบข้อมูลตามตัวกรองที่เลือก ลองกด "ล้างตัวกรอง"', false); } else status('');
+  if (!v.length) { setStatus('ไม่พบข้อมูลตามตัวกรองที่เลือก ลองกด "ล้างตัวกรอง"', false); } else setStatus('');
   const mo = [...agg(v.filter(r => r.month), r => r.month)].sort((a, b) => a[0] < b[0] ? -1 : 1);
   chart('c1', { type: 'line', data: { labels: mo.map(x => mlab(x[0])), datasets: [{ label: 'ยอดขายสุทธิ', data: mo.map(x => x[1].net), borderColor: '#1d5fd1', backgroundColor: '#e8f0fd', fill: true, tension: .25, pointRadius: 4 }] } });
-  const pr = top(agg(v, r => r.product_name)).slice(0, 10);
+  const pr = rank(agg(v, r => r.product_name)).slice(0, 10);
   chart('c2', { type: 'bar', data: { labels: pr.map(x => x[0]), datasets: [{ data: pr.map(x => x[1].net), backgroundColor: '#1d5fd1' }] }, options: { indexAxis: 'y' } });
-  const ct = top(agg(v, r => r.category)); chart('c3', { type: 'doughnut', data: { labels: ct.map(x => x[0]), datasets: [{ data: ct.map(x => x[1].net), backgroundColor: BLUES }] } });
-  const br = top(agg(v, r => r.branch)); chart('c4', { type: 'bar', data: { labels: br.map(x => x[0]), datasets: [{ data: br.map(x => x[1].net), backgroundColor: '#0b2a5b' }] } });
-  const pa = top(agg(v, r => r.payment_method)); chart('c5', { type: 'doughnut', data: { labels: pa.map(x => x[0]), datasets: [{ data: pa.map(x => x[1].net), backgroundColor: BLUES }] } });
+  const ct = rank(agg(v, r => r.category)); chart('c3', { type: 'doughnut', data: { labels: ct.map(x => x[0]), datasets: [{ data: ct.map(x => x[1].net), backgroundColor: BLUES }] } });
+  const br = rank(agg(v, r => r.branch)); chart('c4', { type: 'bar', data: { labels: br.map(x => x[0]), datasets: [{ data: br.map(x => x[1].net), backgroundColor: '#0b2a5b' }] } });
+  const pa = rank(agg(v, r => r.payment_method)); chart('c5', { type: 'doughnut', data: { labels: pa.map(x => x[0]), datasets: [{ data: pa.map(x => x[1].net), backgroundColor: BLUES }] } });
   insights(v, net, pr, br, mo);
 }
 function insights(v, net, pr, br, mo) {
@@ -92,3 +93,6 @@ $('btnCsv').onclick = () => { const q = x => { x = String(x ?? ''); return /[",\
   const csv = [COLS.map(c => q(c[1])).join(','), ...tview().map(r => COLS.map(([c]) => q(c === 'discount' ? r.discount : r[c])).join(','))].join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = 'datalens-sales.csv'; a.click(); };
 load();
+
+window.addEventListener('error', e => setStatus('เกิดข้อผิดพลาดในหน้าเว็บ: ' + e.message, true));
+window.addEventListener('unhandledrejection', e => setStatus('เกิดข้อผิดพลาด: ' + (e.reason?.message || e.reason), true));
