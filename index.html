@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataLens – แดชบอร์ดยอดขายร้านเครื่องเขียน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">DataLens <small>ยอดขายร้านเครื่องเขียน 2569</small></div>
+  <nav id="tabs" aria-label="เมนูหลัก">
+    <button class="tab on" data-t="overview">ภาพรวม</button>
+    <button class="tab" data-t="quality">คุณภาพข้อมูล</button>
+    <button class="tab" data-t="explore">สำรวจข้อมูล</button>
+    <button class="tab" data-t="table">ตารางข้อมูล</button>
+  </nav>
+  <button id="btnRefresh" class="ghost">รีเฟรช</button>
+</header>
+<main>
+  <div id="status" class="status" role="status">กำลังดึงข้อมูลจาก Supabase …</div>
+  <div id="app" hidden>
+    <div class="bar" id="filters">
+      <select id="fMonth" aria-label="เดือน"></select><select id="fBranch" aria-label="สาขา"></select>
+      <select id="fCat" aria-label="หมวดหมู่"></select><select id="fChan" aria-label="ช่องทางขาย"></select>
+      <select id="fPay" aria-label="วิธีชำระเงิน"></select><button id="btnReset" class="ghost">ล้างตัวกรอง</button>
+    </div>
+    <section class="pane on" id="p-overview">
+      <div id="kpis" class="kpis"></div>
+      <div class="grid">
+        <div class="card wide"><h2>ยอดขายสุทธิรายเดือน (บาท)</h2><div class="cv"><canvas id="c1"></canvas></div></div>
+        <div class="card"><h2>ยอดขายสุทธิ 10 สินค้า (บาท)</h2><div class="cv"><canvas id="c2"></canvas></div></div>
+        <div class="card"><h2>สัดส่วนยอดขายตามหมวดหมู่</h2><div class="cv"><canvas id="c3"></canvas></div></div>
+        <div class="card"><h2>ยอดขายสุทธิตามสาขา (บาท)</h2><div class="cv"><canvas id="c4"></canvas></div></div>
+        <div class="card"><h2>วิธีชำระเงิน (สัดส่วนยอดขาย)</h2><div class="cv"><canvas id="c5"></canvas></div></div>
+      </div>
+      <div id="insights" class="card"></div>
+    </section>
+    <section class="pane" id="p-quality">
+      <div id="qkpis" class="kpis"></div>
+      <div class="card"><h2>ขั้นตอนทำความสะอาดข้อมูล (ตรวจแล้วก่อนแก้ ไม่ลบโดยไม่มีเหตุผล)</h2><div class="scroll"><table id="log"></table></div></div>
+      <div class="card"><h2>ความครบถ้วนของข้อมูลดิบ และพจนานุกรมข้อมูล</h2><div class="scroll"><table id="dict"></table></div></div>
+    </section>
+    <section class="pane" id="p-explore">
+      <div class="card"><h2>สถิติสรุป (เฉพาะรายการที่ใช้วิเคราะห์)</h2><div class="scroll"><table id="stats"></table></div></div>
+      <div class="card"><div class="ctrl"><label>สรุปยอดขายแยกตาม <select id="gDim"></select></label></div><div class="scroll"><table id="group"></table></div></div>
+    </section>
+    <section class="pane" id="p-table">
+      <div class="row between"><span id="count"></span><span><input id="q" type="search" placeholder="ค้นหา" aria-label="ค้นหา"> <button id="btnCsv" class="ghost">ส่งออก CSV</button></span></div>
+      <div class="card scroll tall"><table id="data"></table></div>
+      <div class="pager"><button id="prev" class="ghost">ก่อนหน้า</button><span id="pg"></span><button id="next" class="ghost">ถัดไป</button></div>
+    </section>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/cloud.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
