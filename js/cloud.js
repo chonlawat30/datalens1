@@ -17,7 +17,6 @@ const Cloud = {
     }
   },
   async loadAll() {
-    const [clean, raw, log] = await Promise.all([this.table('sales_clean', 'tx_id'), this.table('sales_raw', 'row_no'), this.table('cleaning_log', 'step_no')]);
-    return { clean, raw, log };
+    return { clean: await this.table('sales_clean', 'tx_id') };
   }
 };
