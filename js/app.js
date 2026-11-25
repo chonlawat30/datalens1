@@ -55,7 +55,7 @@ function insights(v, net, pr, br, mo) {
   const on = sum(v.filter(r => r.channel === 'ออนไลน์'), r => +r.net_sales); ins.push(`ช่องทางออนไลน์คิดเป็น ${pct(on)} ของยอดขาย ส่วนหน้าร้านคิดเป็น ${pct(net - on)}`);
   const d = v.filter(r => r.discount > 0), nd = v.filter(r => !r.discount);
   if (d.length && nd.length) ins.push(`รายการที่มีส่วนลดมีค่าเฉลี่ย ${nf(sum(d, r => +r.net_sales) / d.length, 2)} บาท/รายการ เทียบกับ ${nf(sum(nd, r => +r.net_sales) / nd.length, 2)} บาท เมื่อไม่มีส่วนลด`);
-  $('insights').innerHTML = '<h2>สรุปประเด็นสำคัญ (Insight)</h2><ul>' + ins.map(i => `<li>${i}</li>`).join('') + `</ul><div class="rec"><b>ข้อเสนอแนะ:</b> เพิ่มสต็อกและจัดโปรโมชันให้ ${esc(pr[0][0])} และสินค้าอันดับต้น ๆ, ศึกษาวิธีขายของสาขาที่ขายดีไปปรับใช้กับสาขาที่ยอดต่ำ, และบังคับกรอกสาขา/วิธีชำระเงิน/วันที่ในระบบบันทึกขาย เพื่อลดข้อมูลขาดหาย</div>`;
+  $('insights').innerHTML = '<h2>สรุปประเด็นสำคัญ (Insight)</h2><ul>' + ins.map(i => `<li>${i}</li>`).join('') + `</ul><div class="rec"><b>ข้อเสนอแนะ:</b> เพิ่มสต็อกและจัดโปรโมชันให้ ${esc(pr[0][0])} และสินค้าอันดับต้น ๆ และศึกษาวิธีขายของสาขาที่ขายดีไปปรับใช้กับสาขาที่ยอดต่ำ</div>`;
 }
 const stat = a => { a = a.filter(x => x != null && !isNaN(x)).sort((x, y) => x - y); if (!a.length) return []; const m = a.reduce((s, x) => s + x, 0) / a.length; return [m, a.length % 2 ? a[a.length >> 1] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2, Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length), a[0], a.at(-1)]; };
 function renderExplore(v) {
@@ -65,12 +65,12 @@ function renderExplore(v) {
   let g = [...agg(v, r => dim === 'month' ? mlab(r.month) : r[dim])]; g = dim === 'month' ? g.sort((a, b) => a[0] < b[0] ? -1 : 1) : g.sort((a, b) => b[1].net - a[1].net);
   $('group').innerHTML = '<tr><th>กลุ่ม</th><th>ยอดขายสุทธิ (บาท)</th><th>สัดส่วน</th><th>จำนวนชิ้น</th><th>จำนวนรายการ</th><th>เฉลี่ย/รายการ</th></tr>' + g.map(([k, o]) => `<tr><td>${esc(k)}</td><td class="n">${nf(o.net, 2)}</td><td><div class="meter"><i style="width:${100 * o.net / (net || 1)}%"></i></div>${nf(100 * o.net / (net || 1), 1)}%</td><td class="n">${nf(o.qty)}</td><td class="n">${nf(o.n)}</td><td class="n">${nf(o.net / o.n, 2)}</td></tr>`).join('');
 }
-const COLS = [['tx_id', 'เลขที่'], ['sale_date', 'วันที่'], ['product_name', 'สินค้า'], ['category', 'หมวดหมู่'], ['branch', 'สาขา'], ['quantity', 'จำนวน'], ['unit_price', 'ราคา'], ['discount', 'ส่วนลด'], ['payment_method', 'ชำระเงิน'], ['channel', 'ช่องทาง'], ['net_sales', 'ยอดสุทธิ'], ['flags', 'หมายเหตุ']];
-const tview = () => { const q = $('q').value.trim().toLowerCase(); return view(true).filter(r => !q || Object.values(r).some(x => String(x ?? '').toLowerCase().includes(q))); };
+const COLS = [['tx_id', 'เลขที่'], ['sale_date', 'วันที่'], ['product_name', 'สินค้า'], ['category', 'หมวดหมู่'], ['branch', 'สาขา'], ['quantity', 'จำนวน'], ['unit_price', 'ราคา'], ['discount', 'ส่วนลด'], ['payment_method', 'ชำระเงิน'], ['channel', 'ช่องทาง'], ['net_sales', 'ยอดสุทธิ']];
+const tview = () => { const q = $('q').value.trim().toLowerCase(); return view().filter(r => !q || Object.values(r).some(x => String(x ?? '').toLowerCase().includes(q))); };
 function renderTable() {
   const v = tview(), pages = Math.max(1, Math.ceil(v.length / PAGE)); S.page = Math.min(S.page, pages - 1);
-  $('count').textContent = v.length ? `พบ ${nf(v.length)} แถว (รวมแถวที่ติดธงเตือน)` : 'ไม่พบข้อมูลตามตัวกรอง ลองล้างตัวกรองหรือเปลี่ยนคำค้นหา';
-  const cell = (c, r) => c === 'discount' ? nf(100 * r.discount) + '%' : c === 'flags' ? (r.flags ? `<span class="pill w">${esc(r.flags.replaceAll(';', ', '))}</span>` : '') : c === 'net_sales' ? nf(r[c], 2) : esc(r[c] ?? '');
+  $('count').textContent = v.length ? `พบ ${nf(v.length)} แถว` : 'ไม่พบข้อมูลตามตัวกรอง ลองล้างตัวกรองหรือเปลี่ยนคำค้นหา';
+  const cell = (c, r) => c === 'discount' ? nf(100 * r.discount) + '%' : c === 'net_sales' ? nf(r[c], 2) : esc(r[c] ?? '');
   $('data').innerHTML = '<tr>' + COLS.map(c => `<th>${c[1]}</th>`).join('') + '</tr>' + v.slice(S.page * PAGE, (S.page + 1) * PAGE).map(r => '<tr>' + COLS.map(([c]) => `<td class="${['quantity', 'unit_price', 'discount', 'net_sales'].includes(c) ? 'n' : ''}">${cell(c, r)}</td>`).join('') + '</tr>').join('');
   $('pg').textContent = `หน้า ${S.page + 1} / ${pages}`; $('prev').disabled = S.page === 0; $('next').disabled = S.page >= pages - 1;
 }
@@ -82,7 +82,7 @@ $('prev').onclick = () => { S.page--; renderTable(); }; $('next').onclick = () =
 $('btnRefresh').onclick = load;
 $('btnCsv').onclick = () => { const q = x => { x = String(x ?? ''); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
   const csv = [COLS.map(c => q(c[1])).join(','), ...tview().map(r => COLS.map(([c]) => q(c === 'discount' ? r.discount : r[c])).join(','))].join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = 'datalens-sales.csv'; a.click(); };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv' })); a.download = 'sptc-sales.csv'; a.click(); };
 load();
 
 window.addEventListener('error', e => setStatus('เกิดข้อผิดพลาดในหน้าเว็บ: ' + e.message, true));
